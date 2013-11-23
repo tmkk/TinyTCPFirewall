@@ -68,3 +68,6 @@ TransferAmountUpper = 10000
 Whenに0以外を指定する場合は、TransferRate系のキーで条件を指定するのと、TransferAmount系のキーで指定するのとでは、意味は(ほぼ)同じです。指定しやすい方を使ってください。
 
 これ以外に、iniファイルのGlobalセクションにBlackListThresholdというキーがあります。これに0以外の値を指定すると、切断数が指定した回数に達したIPアドレスについては、以降即時切断されるようになります。
+
+*配布元*
+https://github.com/tmkk/TinyTCPFirewall
