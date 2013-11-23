@@ -1,0 +1,8 @@
+main.o: main.cpp TTFPacketCapture.h TTFSessionManager.h TTFSession.h \
+ TTFRule.h TTFIniManager.h log.h
+TTFPacketCapture.o: TTFPacketCapture.cpp TTFPacketCapture.h
+TTFSessionManager.o: TTFSessionManager.cpp TTFSessionManager.h \
+ TTFSession.h TTFRule.h log.h
+TTFSession.o: TTFSession.cpp TTFSession.h log.h
+TTFIniManager.o: TTFIniManager.cpp TTFIniManager.h TTFRule.h
+log.o: log.cpp log.h
