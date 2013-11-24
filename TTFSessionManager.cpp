@@ -240,7 +240,7 @@ void TTFSessionManager::applyFilters(void)
 		double elapsed = session->timeElapsed();
 		while(it2 != rules.end()) {
 			PTTFRule rule = *it2;
-			if(rule->when == 0 || (rule->when > session->lastChecked && elapsed >= rule->when)) {
+			if((rule->when == 0 && elapsed >= rule->applyAfter) || (rule->when > session->lastChecked && elapsed >= rule->when)) {
 				if(rule->processName.compare(session->processName) == 0) {
 					double transferRate;
 					unsigned long long transferAmount;
