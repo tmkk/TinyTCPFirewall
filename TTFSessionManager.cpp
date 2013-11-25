@@ -244,7 +244,7 @@ void TTFSessionManager::applyFilters(void)
 				if(rule->processName.compare(session->processName) == 0) {
 					double transferRate;
 					unsigned long long transferAmount;
-					bool disconnect = false;
+					int disconnect = 0;
 					if(rule->direction == 0) { // down
 						transferRate = session->averageDownSpeed();
 						transferAmount = session->bytesReceived;
@@ -253,19 +253,23 @@ void TTFSessionManager::applyFilters(void)
 						transferRate = session->averageUpSpeed();
 						transferAmount = session->bytesSent;
 					}
-					if(rule->transferRateUpper && transferRate >= rule->transferRateUpper) {
-						disconnect = true;
+					if(rule->transferRateUpper) {
+						if(transferRate >= rule->transferRateUpper) disconnect = 1;
+						else disconnect = -1;
 					}
-					else if(rule->transferAmountUpper && transferAmount >= rule->transferAmountUpper) {
-						disconnect = true;
+					if(rule->transferAmountUpper && disconnect >= 0) {
+						if(transferAmount >= rule->transferAmountUpper) disconnect = 1;
+						else disconnect = -1;
 					}
-					else if(rule->transferRateLower && transferRate < rule->transferRateLower) {
-						disconnect = true;
+					if(rule->transferRateLower && disconnect >= 0) {
+						if(transferRate < rule->transferRateLower) disconnect = 1;
+						else disconnect = -1;
 					}
-					else if(rule->transferAmountLower && transferAmount < rule->transferAmountLower) {
-						disconnect = true;
+					if(rule->transferAmountLower && disconnect >= 0) {
+						if(transferAmount < rule->transferAmountLower) disconnect = 1;
+						else disconnect = -1;
 					}
-					if(disconnect) {
+					if(disconnect > 0) {
 						session->disconnect();
 						if(transferAmount >= 1024*1024) {
 							log_printf("    Reason: %.2f MB %s in %.1f seconds ",transferAmount/1024.0/1024.0,rule->direction?"sent":"received",elapsed);
