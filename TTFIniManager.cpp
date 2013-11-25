@@ -48,15 +48,38 @@ end:
 				char exeName[MAX_PATH];
 				GetPrivateProfileString(section,"ExeName","",exeName,MAX_PATH,iniPath);
 				if(exeName[0] != 0) {
-					int direction = GetPrivateProfileInt(section,"Direction",0,iniPath);
+					int direction = 0;
 					int when = GetPrivateProfileInt(section,"When",0,iniPath);
 					int applyAfter = GetPrivateProfileInt(section,"ApplyAfter",applyAfterGlobal,iniPath);
 					int transferRateUpper = GetPrivateProfileInt(section,"TransferRateUpper",0,iniPath);
 					int transferAmountUpper = GetPrivateProfileInt(section,"TransferAmountUpper",0,iniPath);
 					int transferRateLower = GetPrivateProfileInt(section,"TransferRateLower",0,iniPath);
 					int transferAmountLower = GetPrivateProfileInt(section,"TransferAmountLower",0,iniPath);
-					//fprintf(stderr,"%s,%d,%d,%d,%d,%d,%d,%d\n",exeName,direction,when,applyAfter,transferRateUpper,transferAmountUpper,transferRateLower,transferAmountLower);
-					rules.push_back(PTTFRule(new TTFRule(exeName,direction,when,applyAfter,transferRateUpper,transferAmountUpper,transferRateLower,transferAmountLower)));
+					if(transferRateUpper || transferAmountUpper || transferRateLower || transferAmountLower) {
+						direction = GetPrivateProfileInt(section,"Direction",0,iniPath);
+						rules.push_back(PTTFRule(new TTFRule(exeName,direction,when,applyAfter,transferRateUpper,transferAmountUpper,transferRateLower,transferAmountLower)));
+					}
+					else {
+						int uploadRateUpper = GetPrivateProfileInt(section,"UploadRateUpper",0,iniPath);
+						int uploadAmountUpper = GetPrivateProfileInt(section,"UploadAmountUpper",0,iniPath);
+						int uploadRateLower = GetPrivateProfileInt(section,"UploadRateLower",0,iniPath);
+						int uploadAmountLower = GetPrivateProfileInt(section,"UploadAmountLower",0,iniPath);
+						if(uploadRateUpper || uploadAmountUpper || uploadRateLower || uploadAmountLower)
+							direction = 1;
+						int downloadRateUpper = GetPrivateProfileInt(section,"DownloadRateUpper",0,iniPath);
+						int downloadAmountUpper = GetPrivateProfileInt(section,"DownloadAmountUpper",0,iniPath);
+						int downloadRateLower = GetPrivateProfileInt(section,"DownloadRateLower",0,iniPath);
+						int downloadAmountLower = GetPrivateProfileInt(section,"DownloadAmountLower",0,iniPath);
+						if(downloadRateUpper || downloadAmountUpper || downloadRateLower || downloadAmountLower) {
+							if(direction) direction = 2;
+						}
+						if(direction == 2)
+							rules.push_back(PTTFRule(new TTFRule(exeName,direction,when,applyAfter,uploadRateUpper,uploadAmountUpper,uploadRateLower,uploadAmountLower,downloadRateUpper,downloadAmountUpper,downloadRateLower,downloadAmountLower)));
+						else if(direction == 1)
+							rules.push_back(PTTFRule(new TTFRule(exeName,direction,when,applyAfter,uploadRateUpper,uploadAmountUpper,uploadRateLower,uploadAmountLower)));
+						else
+							rules.push_back(PTTFRule(new TTFRule(exeName,direction,when,applyAfter,downloadRateUpper,downloadAmountUpper,downloadRateLower,downloadAmountLower)));
+					}
 				}
 			}
 			if(sections[pos+1] == 0) break;

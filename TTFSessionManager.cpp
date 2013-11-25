@@ -242,32 +242,74 @@ void TTFSessionManager::applyFilters(void)
 			PTTFRule rule = *it2;
 			if((rule->when == 0 && elapsed >= rule->applyAfter) || (rule->when > session->lastChecked && elapsed >= rule->when)) {
 				if(rule->processName.compare(session->processName) == 0) {
+					int disconnect = 0;
 					double transferRate;
 					unsigned long long transferAmount;
-					int disconnect = 0;
-					if(rule->direction == 0) { // down
-						transferRate = session->averageDownSpeed();
-						transferAmount = session->bytesReceived;
-					}
-					else { // up
+					double transferRateAlt = 0;
+					unsigned long long transferAmountAlt = 0;
+					if(rule->direction == 2) {
 						transferRate = session->averageUpSpeed();
 						transferAmount = session->bytesSent;
+						transferRateAlt = session->averageDownSpeed();
+						transferAmountAlt = session->bytesReceived;
+						if(rule->transferRateUpper) {
+							if(transferRate >= rule->transferRateUpper) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferAmountUpper && disconnect >= 0) {
+							if(transferAmount >= rule->transferAmountUpper) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferRateLower && disconnect >= 0) {
+							if(transferRate < rule->transferRateLower) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferAmountLower && disconnect >= 0) {
+							if(transferAmount < rule->transferAmountLower) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferRateUpperAlt && disconnect >= 0) {
+							if(transferRateAlt >= rule->transferRateUpperAlt) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferAmountUpperAlt && disconnect >= 0) {
+							if(transferAmountAlt >= rule->transferAmountUpperAlt) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferRateLowerAlt && disconnect >= 0) {
+							if(transferRateAlt < rule->transferRateLowerAlt) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferAmountLowerAlt && disconnect >= 0) {
+							if(transferAmountAlt < rule->transferAmountLowerAlt) disconnect = 1;
+							else disconnect = -1;
+						}
 					}
-					if(rule->transferRateUpper) {
-						if(transferRate >= rule->transferRateUpper) disconnect = 1;
-						else disconnect = -1;
-					}
-					if(rule->transferAmountUpper && disconnect >= 0) {
-						if(transferAmount >= rule->transferAmountUpper) disconnect = 1;
-						else disconnect = -1;
-					}
-					if(rule->transferRateLower && disconnect >= 0) {
-						if(transferRate < rule->transferRateLower) disconnect = 1;
-						else disconnect = -1;
-					}
-					if(rule->transferAmountLower && disconnect >= 0) {
-						if(transferAmount < rule->transferAmountLower) disconnect = 1;
-						else disconnect = -1;
+					else {
+						if(rule->direction == 0) { // down
+							transferRate = session->averageDownSpeed();
+							transferAmount = session->bytesReceived;
+						}
+						else { // up
+							transferRate = session->averageUpSpeed();
+							transferAmount = session->bytesSent;
+						}
+						if(rule->transferRateUpper) {
+							if(transferRate >= rule->transferRateUpper) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferAmountUpper && disconnect >= 0) {
+							if(transferAmount >= rule->transferAmountUpper) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferRateLower && disconnect >= 0) {
+							if(transferRate < rule->transferRateLower) disconnect = 1;
+							else disconnect = -1;
+						}
+						if(rule->transferAmountLower && disconnect >= 0) {
+							if(transferAmount < rule->transferAmountLower) disconnect = 1;
+							else disconnect = -1;
+						}
 					}
 					if(disconnect > 0) {
 						session->disconnect();
@@ -282,6 +324,20 @@ void TTFSessionManager::applyFilters(void)
 						}
 						else {
 							log_printf("(%.1f KB/s)\n",transferRate/1024.0);
+						}
+						if(rule->direction == 2) {
+							if(transferAmountAlt >= 1024*1024) {
+								log_printf("            %.2f MB received in %.1f seconds ",transferAmountAlt/1024.0/1024.0,elapsed);
+							}
+							else {
+								log_printf("            %.1f KB received in %.1f seconds ",transferAmountAlt/1024.0,elapsed);
+							}
+							if(transferRateAlt >= 1024.0 * 1024.0) {
+								log_printf("(%.2f MB/s)\n",transferRateAlt/1024.0/1024.0);
+							}
+							else {
+								log_printf("(%.1f KB/s)\n",transferRateAlt/1024.0);
+							}
 						}
 						this->registerToBlackList(session);
 					}
