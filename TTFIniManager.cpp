@@ -1,14 +1,12 @@
 #include <windows.h>
 #include <stdio.h>
+#include <string.h>
 #include "TTFIniManager.h"
 
 void TTFIniManager::parse(void)
 {
 	char iniPath[MAX_PATH], sections[32768];
 	sprintf(iniPath,".\\Rules.ini");
-	
-	sections[0] = sections[1] = sections[2] = 0;
-	GetPrivateProfileString(NULL,NULL,NULL,sections,32768,iniPath);
 	
 	rules.clear();
 	
@@ -38,6 +36,30 @@ end:
 	}
 	else localAddr = 0;
 	
+	blackList.clear();
+	int loadBlacklist = GetPrivateProfileInt("Global","LoadBlackList",0,iniPath);
+	if(loadBlacklist) {
+		FILE *fp = fopen("blacklist.txt","r");
+		if(fp) {
+			while(fgets(sections,32768,fp)) {
+				unsigned int num;
+				char *ptr = strchr(sections,':');
+				if(!ptr) continue;
+				num = strtoul(++ptr,&ptr,10) & 0xff;
+				if(*ptr++ != '.') continue;
+				num |= (strtoul(ptr,&ptr,10) & 0xff) << 8;
+				if(*ptr++ != '.') continue;
+				num |= (strtoul(ptr,&ptr,10) & 0xff) << 16;
+				if(*ptr++ != '.') continue;
+				num |= (strtoul(ptr,&ptr,10) & 0xff) << 24;
+				if(num) blackList.push_back(num);
+			}
+			fclose(fp);
+		}
+	}
+	
+	sections[0] = sections[1] = sections[2] = 0;
+	GetPrivateProfileString(NULL,NULL,NULL,sections,32768,iniPath);
 	char section[256];
 	int pos=0,len=0;
 	while(1) {

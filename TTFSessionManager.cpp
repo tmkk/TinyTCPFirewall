@@ -56,6 +56,11 @@ void TTFSessionManager::addRule(PTTFRule rule)
 	targetProcessList.insert(rule->processName);
 }
 
+void TTFSessionManager::addBlacklistedAddress(unsigned int address)
+{
+	blackList.insert(address);
+}
+
 void TTFSessionManager::commitPacket(unsigned char *data)
 {
 	if(sessionList->empty()) return;
@@ -212,19 +217,52 @@ void TTFSessionManager::updateTargetProcessPid(void)
 #endif
 }
 
-void TTFSessionManager::registerToBlackList(PTTFSession session)
+void TTFSessionManager::registerToBlackList(PTTFSession session, PTTFRule rule)
 {
 	if(!blackListThreshold) return;
 	std::map<unsigned int,int>::iterator it = blockedAddrs.find(session->remoteAddr);
+	bool added = false;
 	if(it != blockedAddrs.end()) {
 		if(++it->second >= blackListThreshold) {
-			log_dated_printf(" Added %d.%d.%d.%d to blacklist\n",session->remoteAddr&0xff,(session->remoteAddr >> 8)&0xff,(session->remoteAddr >> 16)&0xff,(session->remoteAddr >> 24)&0xff);
 			blackList.insert(it->first);
 			blockedAddrs.erase(it);
+			added = true;
 		}
 	}
 	else {
-		blockedAddrs.insert(std::make_pair(session->remoteAddr,1));
+		if(blackListThreshold == 1) {
+			blackList.insert(session->remoteAddr);
+			added = true;
+		}
+		else blockedAddrs.insert(std::make_pair(session->remoteAddr,1));
+	}
+	if(added) {
+		char ruleStr[256];
+		log_dated_printf(" Added %d.%d.%d.%d to blacklist\n",session->remoteAddr&0xff,(session->remoteAddr >> 8)&0xff,(session->remoteAddr >> 16)&0xff,(session->remoteAddr >> 24)&0xff);
+		snprintf(ruleStr,256,"When=%d",(int)rule->when);
+		if(rule->direction == 2) {
+			if(rule->transferRateUpperAlt) snprintf(ruleStr,256,"%s DownRate>%d",ruleStr,(int)(rule->transferRateUpperAlt/1024));
+			if(rule->transferAmountUpperAlt) snprintf(ruleStr,256,"%s DownAmount>%d",ruleStr,(int)(rule->transferAmountUpperAlt/1024));
+			if(rule->transferRateLowerAlt) snprintf(ruleStr,256,"%s DownRate<%d",ruleStr,(int)(rule->transferRateLowerAlt/1024));
+			if(rule->transferAmountLowerAlt) snprintf(ruleStr,256,"%s DownAmount<%d",ruleStr,(int)(rule->transferAmountLowerAlt/1024));
+			if(rule->transferRateUpper) snprintf(ruleStr,256,"%s UpRate>%d",ruleStr,(int)(rule->transferRateUpper/1024));
+			if(rule->transferAmountUpper) snprintf(ruleStr,256,"%s UpAmount>%d",ruleStr,(int)(rule->transferAmountUpper/1024));
+			if(rule->transferRateLower) snprintf(ruleStr,256,"%s UpRate<%d",ruleStr,(int)(rule->transferRateLower/1024));
+			if(rule->transferAmountLower) snprintf(ruleStr,256,"%s UpAmount<%d",ruleStr,(int)(rule->transferAmountLower/1024));
+		}
+		else if(rule->direction == 1) {
+			if(rule->transferRateUpper) snprintf(ruleStr,256,"%s UpRate>%d",ruleStr,(int)(rule->transferRateUpper/1024));
+			if(rule->transferAmountUpper) snprintf(ruleStr,256,"%s UpAmount>%d",ruleStr,(int)(rule->transferAmountUpper/1024));
+			if(rule->transferRateLower) snprintf(ruleStr,256,"%s UpRate<%d",ruleStr,(int)(rule->transferRateLower/1024));
+			if(rule->transferAmountLower) snprintf(ruleStr,256,"%s UpAmount<%d",ruleStr,(int)(rule->transferAmountLower/1024));
+		}
+		else {
+			if(rule->transferRateUpper) snprintf(ruleStr,256,"%s DownRate>%d",ruleStr,(int)(rule->transferRateUpper/1024));
+			if(rule->transferAmountUpper) snprintf(ruleStr,256,"%s DownAmount>%d",ruleStr,(int)(rule->transferAmountUpper/1024));
+			if(rule->transferRateLower) snprintf(ruleStr,256,"%s DownRate<%d",ruleStr,(int)(rule->transferRateLower/1024));
+			if(rule->transferAmountLower) snprintf(ruleStr,256,"%s DownAmount<%d",ruleStr,(int)(rule->transferAmountLower/1024));
+		}
+		log_blacklist("[%s] %s:%d.%d.%d.%d\n",session->processName.c_str(),ruleStr,session->remoteAddr&0xff,(session->remoteAddr >> 8)&0xff,(session->remoteAddr >> 16)&0xff,(session->remoteAddr >> 24)&0xff);
 	}
 }
 
@@ -339,7 +377,7 @@ void TTFSessionManager::applyFilters(void)
 								log_printf("(%.1f KB/s)\n",transferRateAlt/1024.0);
 							}
 						}
-						this->registerToBlackList(session);
+						this->registerToBlackList(session,rule);
 					}
 				}
 			}

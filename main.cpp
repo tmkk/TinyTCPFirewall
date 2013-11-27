@@ -9,7 +9,7 @@
 
 int main(int argc, char *argv[])
 {
-    unsigned char buffer[65536];
+	unsigned char buffer[65536];
 	TTFPacketCapture capture;
 	TTFIniManager ini;
 	ini.parse();
@@ -30,6 +30,14 @@ int main(int argc, char *argv[])
 	}
 	
 	log_dated_printf(" Read %d rule%s\n",ini.rules.size(),ini.rules.size() > 1 ? "s" : "");
+	
+	if(!ini.blackList.empty()) {
+		std::vector<unsigned int>::iterator it2 = ini.blackList.begin();
+		while(it2 != ini.blackList.end()) {
+			manager.addBlacklistedAddress(*it2++);
+		}
+		log_dated_printf(" Added %d address%s to blacklist\n",ini.blackList.size(),ini.blackList.size() > 1 ? "es" : "");
+	}
 	
 	manager.updateTargetProcessPid();
 	manager.updateTargetSessions();

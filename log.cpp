@@ -40,3 +40,14 @@ void log_dated_printf(const char *format ...)
 	va_end(argp);
 	fclose(fp);
 }
+
+void log_blacklist(const char *format ...)
+{
+	FILE *fp = fopen("blacklist.txt","a");
+	if(!fp) return;
+	va_list argp;
+	va_start(argp, format);
+	vfprintf(fp, format, argp);
+	va_end(argp);
+	fclose(fp);
+}

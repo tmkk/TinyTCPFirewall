@@ -29,12 +29,13 @@ public:
 	
 	void commitPacket(unsigned char *data);
 	void addRule(PTTFRule rule);
+	void addBlacklistedAddress(unsigned int address);
 	void updateTargetSessions(void);
 	void updateTargetProcessPid(void);
 	void applyFilters(void);
 	void printTargetSessionsState(void);
 private:
-	void registerToBlackList(PTTFSession session);
+	void registerToBlackList(PTTFSession session, PTTFRule rule);
 #ifdef _WIN32
 	bool applyBlackListFilter(MIB_TCPROW_OWNER_PID *table);
 #endif
