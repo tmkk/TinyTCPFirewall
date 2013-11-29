@@ -61,6 +61,11 @@ void TTFSessionManager::addBlacklistedAddress(unsigned int address)
 	blackList.insert(address);
 }
 
+void TTFSessionManager::addRangedBlacklistedAddress(unsigned int start, unsigned int end)
+{
+	rangedBlackList.push_back(std::make_pair(start,end));
+}
+
 void TTFSessionManager::commitPacket(unsigned char *data)
 {
 	if(sessionList->empty()) return;
@@ -96,8 +101,17 @@ void TTFSessionManager::commitPacket(unsigned char *data)
 #ifdef _WIN32
 bool TTFSessionManager::applyBlackListFilter(MIB_TCPROW_OWNER_PID *table)
 {
-	if(blackList.empty()) return false;
-	if(blackList.find(table->dwRemoteAddr) == blackList.end()) return false;
+	if(blackList.empty() || blackList.find(table->dwRemoteAddr) == blackList.end()) {
+		if(rangedBlackList.empty()) return false;
+		std::vector<std::pair<unsigned int, unsigned int> >::iterator it = rangedBlackList.begin();
+		unsigned int addr = ntohl(table->dwRemoteAddr);
+		while(it != rangedBlackList.end()) {
+			if(addr >= it->first && addr <= it->second) goto found;
+			it++;
+		}
+		return false;
+	}
+found:
 	MIB_TCPROW session;
 	session.dwLocalAddr = table->dwLocalAddr;
 	session.dwLocalPort = table->dwLocalPort;
@@ -238,7 +252,9 @@ void TTFSessionManager::registerToBlackList(PTTFSession session, PTTFRule rule)
 	}
 	if(added) {
 		char ruleStr[256];
-		log_dated_printf(" Added %d.%d.%d.%d to blacklist\n",session->remoteAddr&0xff,(session->remoteAddr >> 8)&0xff,(session->remoteAddr >> 16)&0xff,(session->remoteAddr >> 24)&0xff);
+		char addrStr[32];
+		snprintf(addrStr,32,"%d.%d.%d.%d",session->remoteAddr&0xff,(session->remoteAddr >> 8)&0xff,(session->remoteAddr >> 16)&0xff,(session->remoteAddr >> 24)&0xff);
+		log_dated_printf(" Added %s to blacklist\n",addrStr);
 		snprintf(ruleStr,256,"When=%d",(int)rule->when);
 		if(rule->direction == 2) {
 			if(rule->transferRateUpperAlt) snprintf(ruleStr,256,"%s DownRate>%d",ruleStr,(int)(rule->transferRateUpperAlt/1024));
@@ -262,7 +278,7 @@ void TTFSessionManager::registerToBlackList(PTTFSession session, PTTFRule rule)
 			if(rule->transferRateLower) snprintf(ruleStr,256,"%s DownRate<%d",ruleStr,(int)(rule->transferRateLower/1024));
 			if(rule->transferAmountLower) snprintf(ruleStr,256,"%s DownAmount<%d",ruleStr,(int)(rule->transferAmountLower/1024));
 		}
-		log_blacklist("[%s] %s:%d.%d.%d.%d\n",session->processName.c_str(),ruleStr,session->remoteAddr&0xff,(session->remoteAddr >> 8)&0xff,(session->remoteAddr >> 16)&0xff,(session->remoteAddr >> 24)&0xff);
+		log_blacklist("[%s] %s:%s-%s\n",session->processName.c_str(),ruleStr,addrStr,addrStr);
 	}
 }
 

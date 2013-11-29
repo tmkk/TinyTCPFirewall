@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <utility>
 #ifdef _WIN32
 #include <iphlpapi.h>
 #endif
@@ -20,6 +21,7 @@ protected:
 	std::map<unsigned int,std::string> targetPids;
 	std::map<unsigned int,int> blockedAddrs;
 	std::set<unsigned int> blackList;
+	std::vector<std::pair<unsigned int, unsigned int> > rangedBlackList;
 	int blackListThreshold;
 	TTFRules rules;
 	
@@ -30,6 +32,7 @@ public:
 	void commitPacket(unsigned char *data);
 	void addRule(PTTFRule rule);
 	void addBlacklistedAddress(unsigned int address);
+	void addRangedBlacklistedAddress(unsigned int start, unsigned int end);
 	void updateTargetSessions(void);
 	void updateTargetProcessPid(void);
 	void applyFilters(void);

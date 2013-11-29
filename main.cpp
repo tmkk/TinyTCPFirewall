@@ -7,8 +7,24 @@
 #include <sys/time.h>
 #include <windows.h>
 
+BOOL WINAPI exitHandler(DWORD dwCtrlType)
+{
+	switch (dwCtrlType) {
+		case CTRL_C_EVENT:
+			if(IDCANCEL == MessageBox(NULL,"Are you sure you want to quit?","Quit application",MB_OKCANCEL|MB_ICONWARNING))
+				return TRUE;
+			break;
+		default:
+			break;
+	}
+	
+	return FALSE;
+}
+
 int main(int argc, char *argv[])
 {
+	SetConsoleCtrlHandler(exitHandler, TRUE);
+	
 	unsigned char buffer[65536];
 	TTFPacketCapture capture;
 	TTFIniManager ini;
@@ -24,6 +40,12 @@ int main(int argc, char *argv[])
 	
 	struct timeval tv1,tv2;
 	TTFSessionManager manager(capture.localAddr, ini.blackListThreshold);
+	
+	if(ini.disableCloseButton) {
+		HMENU hmenu = GetSystemMenu(GetConsoleWindow(), FALSE);
+		RemoveMenu(hmenu, SC_CLOSE, MF_BYCOMMAND);
+	}
+	
 	TTFRules::iterator it = ini.rules.begin();
 	while(it != ini.rules.end()) {
 		manager.addRule(*it++);
@@ -37,6 +59,15 @@ int main(int argc, char *argv[])
 			manager.addBlacklistedAddress(*it2++);
 		}
 		log_dated_printf(" Added %d address%s to blacklist\n",ini.blackList.size(),ini.blackList.size() > 1 ? "es" : "");
+	}
+	
+	if(!ini.rangedBlackList.empty()) {
+		std::vector<std::pair<unsigned int, unsigned int> >::iterator it3 = ini.rangedBlackList.begin();
+		while(it3 != ini.rangedBlackList.end()) {
+			manager.addRangedBlacklistedAddress(it3->first,it3->second);
+			it3++;
+		}
+		log_dated_printf(" Added %d address range%s to blacklist\n",ini.rangedBlackList.size(),ini.rangedBlackList.size() > 1 ? "s" : "");
 	}
 	
 	manager.updateTargetProcessPid();

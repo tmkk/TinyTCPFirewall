@@ -12,6 +12,7 @@ void TTFIniManager::parse(void)
 	
 	blackListThreshold = GetPrivateProfileInt("Global","BlackListThreshold",0,iniPath);
 	int applyAfterGlobal = GetPrivateProfileInt("Global","ApplyAfter",0,iniPath);
+	disableCloseButton = GetPrivateProfileInt("Global","DisableCloseButton",0,iniPath);
 	char addrStr[32];
 	GetPrivateProfileString("Global","MyIPAddress","",addrStr,32,iniPath);
 	if(addrStr[0] != 0 && strcasecmp(addrStr,"auto")) {
@@ -42,17 +43,30 @@ end:
 		FILE *fp = fopen("blacklist.txt","r");
 		if(fp) {
 			while(fgets(sections,32768,fp)) {
-				unsigned int num;
+				unsigned int start,end;
 				char *ptr = strchr(sections,':');
 				if(!ptr) continue;
-				num = strtoul(++ptr,&ptr,10) & 0xff;
+				start = (strtoul(++ptr,&ptr,10) & 0xff) << 24;
 				if(*ptr++ != '.') continue;
-				num |= (strtoul(ptr,&ptr,10) & 0xff) << 8;
+				start |= (strtoul(ptr,&ptr,10) & 0xff) << 16;
 				if(*ptr++ != '.') continue;
-				num |= (strtoul(ptr,&ptr,10) & 0xff) << 16;
+				start |= (strtoul(ptr,&ptr,10) & 0xff) << 8;
 				if(*ptr++ != '.') continue;
-				num |= (strtoul(ptr,&ptr,10) & 0xff) << 24;
-				if(num) blackList.push_back(num);
+				start |= strtoul(ptr,&ptr,10) & 0xff;
+				if(*ptr++ == '-') {
+					end = (strtoul(ptr,&ptr,10) & 0xff) << 24;
+					if(*ptr++ != '.') continue;
+					end |= (strtoul(ptr,&ptr,10) & 0xff) << 16;
+					if(*ptr++ != '.') continue;
+					end |= (strtoul(ptr,&ptr,10) & 0xff) << 8;
+					if(*ptr++ != '.') continue;
+					end |= strtoul(ptr,&ptr,10) & 0xff;
+				}
+				else end = start;
+				if(start && end) {
+					if(start == end) blackList.push_back(htonl(start));
+					else if(start < end) rangedBlackList.push_back(std::make_pair(start,end));
+				}
 			}
 			fclose(fp);
 		}
